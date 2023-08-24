@@ -1,4 +1,5 @@
 const Blog = require("../models/Blog");
+const User = require("../models/User");
 
 //getting all Blogs
 //GET method
@@ -201,6 +202,42 @@ const setBlogLikes = async (req, res) => {
     });
 };
 
+//getting user's blogs
+//GET method
+
+const getBlogsByUserId = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId)
+            return res.json({
+                success: false,
+                message: "User ID is required to get the blogs!",
+            });
+
+        const user = await User.findById(userId).lean().exec();
+
+        if (!user)
+            return res.status(404).json({
+                success: false,
+                message: "User not found!",
+            });
+
+        const blogs = await Blog.find().lean();
+        const userBlogs = blogs?.filter((blog) => blog.userId == userId);
+
+        if (!userBlogs?.length)
+            return res.json({
+                success: true,
+                message: `User ${user.name} has no blogs!`,
+            });
+
+        return res.json({ success: true, data: userBlogs });
+    } catch (error) {
+        throw new Error(error);
+    }
+};
+
 module.exports = {
     getAllBlogs,
     createNewBlog,
@@ -208,4 +245,5 @@ module.exports = {
     deleteBlog,
     getBlogById,
     setBlogLikes,
+    getBlogsByUserId,
 };

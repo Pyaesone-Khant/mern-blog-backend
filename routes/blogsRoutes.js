@@ -6,6 +6,7 @@ const {
     deleteBlog,
     getBlogById,
     setBlogLikes,
+    getBlogsByUserId,
 } = require("../controllers/BlogsController");
 
 const router = express.Router();
@@ -17,6 +18,8 @@ router
     .put(updateBlog)
     .delete(deleteBlog);
 router.route("/:id").get(getBlogById);
-router.post("/reactions", setBlogLikes);
+router
+    .post("/reactions", setBlogLikes)
+    .get("/getUserBlogs/:userId", getBlogsByUserId);
 
 module.exports = router;

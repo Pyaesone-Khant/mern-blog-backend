@@ -6,6 +6,7 @@ const bodyParser = require("body-parser");
 const corsOptions = require("./config/corsOptions");
 const connectDB = require("./config/dbConn");
 const cookieParser = require("cookie-parser");
+const allowedOrigins = require("./config/allowedOrigins");
 const PORT = process.env.PORT || 3500;
 const app = express();
 

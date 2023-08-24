@@ -7,5 +7,4 @@ const searchUserByEmail = async (User, email) => {
     const user = await User.findOne({ email }).lean().exec();
     return user;
 };
-
 module.exports = { searchUserByEmail, searchUserById };

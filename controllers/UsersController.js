@@ -4,6 +4,7 @@ const {
     searchUserById,
     searchUserByEmail,
 } = require("../services/UserServices");
+const Blog = require("../models/Blog");
 
 //getting all users
 //GET method
@@ -163,7 +164,8 @@ const deleteUser = async (req, res) => {
                 success: false,
                 message: "Password is incorrect!",
             });
-
+        //deleting blogs before the account is deleted!
+        const deleteBlogs = await Blog.deleteMany({ userId: id });
         const result = await user.deleteOne();
         return res.json({
             success: true,
