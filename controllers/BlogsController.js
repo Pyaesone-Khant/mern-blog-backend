@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const Blog = require("../models/Blog");
 const User = require("../models/User");
 
@@ -5,27 +6,44 @@ const User = require("../models/User");
 //GET method
 const getAllBlogs = async (req, res) => {
     try {
+        const ObjectId = mongoose.Types.ObjectId;
         const { page } = req.query || 1;
         const { size } = req.query || 3;
+        const { cId } = req.query;
         const pageToSkip = parseInt(page) - 1;
+        let blogs,
+            totalBlogs = 0;
 
-        const blogs = await Blog.find()
-            .sort({ createdAt: -1 })
-            .skip(pageToSkip * parseInt(size))
-            .limit(parseInt(size));
+        if (ObjectId.isValid(cId)) {
+            blogs = await Blog.find({
+                categoryId: cId,
+            })
+                .sort({ createdAt: -1 })
+                .skip(pageToSkip * parseInt(size))
+                .limit(parseInt(size));
+            const allBlogs = await Blog.find({ categoryId: cId }).lean();
 
-        const allBlogs = await Blog.find().lean();
+            totalBlogs = allBlogs?.length;
+        } else {
+            blogs = await Blog.find()
+                .sort({ createdAt: -1 })
+                .skip(pageToSkip * parseInt(size))
+                .limit(parseInt(size));
+            const allBlogs = await Blog.find().lean();
+            totalBlogs = allBlogs?.length;
+        }
 
         if (!blogs?.length)
             return res.json({
                 success: false,
                 message: "There is no Blogs for now!",
             });
+
         return res.json({
             page,
             success: true,
             data: blogs,
-            totalBlogs: allBlogs?.length,
+            totalBlogs: totalBlogs,
         });
     } catch (error) {
         return res.json({ success: false, error: error });
