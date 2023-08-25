@@ -14,6 +14,10 @@ const userSchema = new mongoose.Schema({
         required: true,
         select: false,
     },
+    savedBlogs: {
+        type: Array,
+        default: [],
+    },
 });
 
 module.exports = mongoose.model("User", userSchema);

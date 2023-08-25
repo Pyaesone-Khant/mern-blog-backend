@@ -5,14 +5,28 @@ const User = require("../models/User");
 //GET method
 const getAllBlogs = async (req, res) => {
     try {
-        const blogs = await Blog.find().lean();
+        const { page } = req.query || 1;
+        const { size } = req.query || 3;
+        const pageToSkip = parseInt(page) - 1;
+
+        const blogs = await Blog.find()
+            .sort({ createdAt: -1 })
+            .skip(pageToSkip * parseInt(size))
+            .limit(parseInt(size));
+
+        const allBlogs = await Blog.find().lean();
 
         if (!blogs?.length)
             return res.json({
                 success: false,
                 message: "There is no Blogs for now!",
             });
-        return res.json({ success: true, data: blogs });
+        return res.json({
+            page,
+            success: true,
+            data: blogs,
+            totalBlogs: allBlogs?.length,
+        });
     } catch (error) {
         return res.json({ success: false, error: error });
     }

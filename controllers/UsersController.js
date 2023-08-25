@@ -196,10 +196,107 @@ const getUserById = async (req, res) => {
     }
 };
 
+//handle bookmarking blogs
+//POST method
+const setSavedBlog = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { blogId } = req.body;
+
+        if (!userId || !blogId)
+            return res.json({
+                success: false,
+                message: "User ID & Blog ID are required!",
+            });
+
+        const blog = await Blog.findById(blogId).lean().exec();
+
+        if (!blog)
+            return res.json({
+                success: false,
+                message: `Blog ID ${blogId} not found!`,
+            });
+
+        const user = await User.findById(userId).lean().exec();
+
+        if (!user)
+            return res.json({
+                success: false,
+                message: `User ID ${userId} not found!`,
+            });
+
+        //blog.reactions.push(userId);
+        const blogAlreadySaved = user.savedBlogs?.find((bId) => bId === blogId);
+
+        if (blogAlreadySaved) {
+            const result = await User.updateOne(
+                { _id: userId },
+                { $pull: { savedBlogs: blogId } }
+            );
+            return res.json({
+                success: true,
+                message: `Blog with ID ${blogId} un-saved successfully!`,
+                data: result,
+            });
+        }
+
+        const result = await User.updateOne(
+            { _id: userId },
+            { $push: { savedBlogs: blogId } }
+        );
+        return res.json({
+            success: true,
+            message: `Blog saved successfully!`,
+            data: result,
+        });
+    } catch (error) {
+        return res.json({ success: false, error: error });
+    }
+};
+
+//get savedBlogs
+//GET method
+const getUserSavedBlogs = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!userId)
+            return res.json({
+                success: false,
+                message: "User ID is required!",
+            });
+
+        const user = await User.findById(userId).lean().exec();
+
+        if (!user)
+            return res.json({
+                success: false,
+                message: `User ID ${userId} not found!`,
+            });
+
+        //finding all blogs user had saved
+        const savedBlogsList = await Blog.find({
+            _id: { $in: user.savedBlogs },
+        });
+
+        if (!savedBlogsList?.length)
+            return res.json({
+                success: true,
+                message: "You haven't saved any blogs!",
+            });
+
+        return res.json({ success: true, data: savedBlogsList });
+    } catch (error) {
+        return res.json({ success: false, error: error });
+    }
+};
+
 module.exports = {
     getAllUsers,
     createNewUser,
     updateUser,
     deleteUser,
     getUserById,
+    setSavedBlog,
+    getUserSavedBlogs,
 };
