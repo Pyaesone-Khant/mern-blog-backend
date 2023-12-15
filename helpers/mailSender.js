@@ -14,7 +14,7 @@ const sendEmail = async (email, subject, text) => {
         });
 
         const mailOptions = {
-            from: "PK-Blog Team",
+            from: process.env.EMAIL,
             to: email,
             subject: subject,
             text: text
