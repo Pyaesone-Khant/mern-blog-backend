@@ -23,12 +23,6 @@ const createNewCategory = async (req, res) => {
     try {
         const { title } = req.body;
 
-        if (!title)
-            return res.json({
-                success: false,
-                message: "All fields are required!",
-            });
-
         if (title.trim().length < 4)
             return res.json({
                 success: false,

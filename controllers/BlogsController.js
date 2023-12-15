@@ -1,6 +1,9 @@
 const { default: mongoose } = require("mongoose");
 const Blog = require("../models/Blog");
 const User = require("../models/User");
+const ImageServices = require("../services/ImageServices");
+const deleteImage = require("../middlewares/deleteImage");
+
 
 //getting all Blogs
 //GET method
@@ -54,7 +57,9 @@ const getAllBlogs = async (req, res) => {
 //POST method
 const createNewBlog = async (req, res) => {
     try {
-        const { title, description, userId, categoryId } = req.body;
+        const {body, file} = req;
+        const { title, description, userId, categoryId } = JSON.parse(body?.blogData);
+       const blogImage = file?.originalname || null;
 
         if (!title || !description || !userId || !categoryId)
             return res.json({
@@ -62,24 +67,12 @@ const createNewBlog = async (req, res) => {
                 message: "All fields are required!",
             });
 
-        if (title.trim().length < 5)
-            return res.json({
-                success: false,
-                message: "Blog title is too short!",
-            });
-
-        if (description.trim().length < 20)
-            return res.json({
-                success: false,
-                message: "Blog article is too short!",
-            });
-
         const duplicate = await Blog.findOne({ title }).lean().exec();
 
         if (duplicate)
             return res.json({ success: false, message: `Duplicated title!` });
 
-        const blogObj = { title, description, userId, categoryId };
+        const blogObj = { title, description, userId, categoryId, blogImage};
 
         const blog = await Blog.create(blogObj);
 
@@ -90,7 +83,7 @@ const createNewBlog = async (req, res) => {
             });
         return res.json({
             success: true,
-            message: "Blog has been created.",
+            message: "New blog has been created successfully.",
         });
     } catch (error) {
         return res.json({ success: false, error: error });
@@ -101,24 +94,14 @@ const createNewBlog = async (req, res) => {
 //PUT method
 const updateBlog = async (req, res) => {
     try {
-        const { id, title, description } = req.body;
+        const {body, file} = req;
+        const { title, description, id } = JSON.parse(body?.blogData);
+        const blogImage = file?.originalname || null;
 
         if (!id)
             return res.json({
                 success: false,
                 message: "ID is required to update Blog data!",
-            });
-
-        if (title.trim().length < 5)
-            return res.json({
-                success: false,
-                message: "Blog title is too short!",
-            });
-
-        if (description.trim().length < 20)
-            return res.json({
-                success: false,
-                message: "Blog article is too short!",
             });
 
         //find Blog by id in database
@@ -127,14 +110,22 @@ const updateBlog = async (req, res) => {
         if (!blog)
             return res.json({ success: false, message: "Blog not found!" });
 
-        //return res.json(Blog);
+        if((blog?.blogImage && blogImage !== blog?.blogImage) || (!blogImage && blog?.blogImage)){
+            const result = await deleteImage(blog?.blogImage);
+            if(!result) return res.json({success: false, message: "Error deleting image!"})
+        }
 
         blog.title = title;
         blog.description = description;
+        blog.blogImage = blogImage;
         const result = await blog.save();
+
+        if(!result){
+            return res.json({success: false, message: "Error updating blog!"})
+        }
+
         return res.json({
             success: true,
-            data: result,
             message: "Blog has been updated successfully!",
         });
     } catch (error) {
@@ -159,6 +150,11 @@ const deleteBlog = async (req, res) => {
 
         if (!blog)
             return res.json({ success: false, message: "Blog not found!" });
+
+        if(blog?.blogImage){
+            const result = await deleteImage("blogImages", blog?.blogImage);
+            if(!result) return res.json({success: false, message: "Error deleting image!"})
+        }
 
         const result = await blog.deleteOne();
         return res.json({
@@ -240,7 +236,6 @@ const setBlogLikes = async (req, res) => {
 const getBlogsByUserId = async (req, res) => {
     try {
         const { userId } = req.params;
-
         if (!userId)
             return res.json({
                 success: false,
@@ -270,6 +265,41 @@ const getBlogsByUserId = async (req, res) => {
     }
 };
 
+// search blogs by title
+// GET method
+const searchBlogsByTitle = async (req, res) => {
+    try {
+        const ObjectId = mongoose.Types.ObjectId;
+        const { title, categoryId } = req.body;
+        // const pageToSkip = parseInt(page) - 1;
+        if (!title)
+            return res.json({
+                success: false,
+                message: "Title is required to search blogs!",
+            });
+
+        let blogs;
+        if(ObjectId.isValid(categoryId)){
+            blogs = await Blog.find({categoryId}).lean()
+        }else{
+            blogs = await Blog.find().lean()
+        }
+        const searchedBlogs = blogs?.filter((blog) =>
+            blog.title.toLowerCase().includes(title.toLowerCase())
+        );
+
+        if (!searchedBlogs?.length)
+            return res.json({
+                success: true,
+                message: `No blogs found with title ${title}!`,
+            });
+
+        return res.json({ success: true, data: searchedBlogs });
+    } catch (error) {
+        throw new Error(error);
+    }
+};
+
 module.exports = {
     getAllBlogs,
     createNewBlog,
@@ -278,4 +308,5 @@ module.exports = {
     getBlogById,
     setBlogLikes,
     getBlogsByUserId,
+    searchBlogsByTitle
 };

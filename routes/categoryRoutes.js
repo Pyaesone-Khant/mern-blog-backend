@@ -7,13 +7,14 @@ const {
 } = require("../controllers/CategoryController");
 
 const router = require("express").Router();
+const authToken = require("../middlewares/authToken");
 
 router
     .route("/")
     .get(getAllCategories)
-    .post(createNewCategory)
-    .put(updateCategory)
-    .delete(deleteCategory);
+    .post( authToken, createNewCategory)
+    .put( authToken, updateCategory)
+    .delete( authToken, deleteCategory);
 
 router.route("/:id").get(getCategoryById);
 

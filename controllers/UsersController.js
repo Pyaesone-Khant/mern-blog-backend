@@ -1,17 +1,16 @@
 const User = require("../models/User");
 const { hashSync, compareSync } = require("bcrypt");
-const {
-    searchUserById,
-    searchUserByEmail,
-} = require("../services/UserServices");
 const Blog = require("../models/Blog");
+const UserServices = require("../services/UserServices");
+const sendEmail = require("../helpers/mailSender");
+const generateOTP = require("../helpers/otpGenerator");
+const deleteImage = require("../middlewares/deleteImage");
 
 //getting all users
 //GET method
 const getAllUsers = async (req, res) => {
     try {
-        const users = await User.find().select("-password").lean();
-
+        const users = await UserServices.getAllUser();
         if (!users?.length)
             return res.json({
                 success: false,
@@ -23,31 +22,27 @@ const getAllUsers = async (req, res) => {
     }
 };
 
+// get current user
+// GET method
+const getCurrentUser = async (req, res) => {
+    try {
+        const email = req.email;
+        const user = await UserServices.findUserByColumn({email}, "-password -otp -otpExpirationTime -isVerified -__v");
+        if (!user) return res.json({ success: false, message: "User not found!" });
+        return res.json({ success: true, data: user });
+    }catch (error) {
+        return res.json({ success: false, error: error });
+    }
+}
+
+
 //creating new user
 //POST method
 const createNewUser = async (req, res) => {
     try {
         const { name, email, password } = req.body;
 
-        if (!name || !email || !password)
-            return res.json({
-                success: false,
-                message: "All fields are required!",
-            });
-
-        if (name.trim().length < 5)
-            return res.json({
-                success: false,
-                message: "Name is too short!",
-            });
-
-        if (password.trim().length < 8)
-            return res.json({
-                success: false,
-                message: "Password is too short!",
-            });
-
-        const duplicate = await searchUserByEmail(User, email);
+        const duplicate = await UserServices.findUserByColumn({email});
 
         if (duplicate)
             return res.json({
@@ -59,7 +54,7 @@ const createNewUser = async (req, res) => {
 
         const userObj = { name, email, password: hashedPassword };
 
-        const user = await User.create(userObj);
+        const user = await UserServices.createUser(userObj);
 
         if (!user)
             return res.json({
@@ -75,45 +70,25 @@ const createNewUser = async (req, res) => {
     }
 };
 
-//updating user
+//change password
 //PUT method
-const updateUser = async (req, res) => {
+const changePassword = async (req, res) => {
     try {
-        const { id, name, password, newPassword } = req.body;
-
-        if (!id || !password || !name)
-            return res.json({
-                success: false,
-                message:
-                    "ID, name & current password are required to update user data!",
-            });
-
-        if (name.trim().length < 5)
-            return res.json({
-                success: false,
-                message: "Name is too short!",
-            });
-
-        if (newPassword?.trim().length < 8)
-            return res.json({
-                success: false,
-                message: "New password must have at least 8 characters!",
-            });
-
-        if (newPassword === password)
-            return res.json({
-                success: false,
-                message:
-                    "New password can't be the same with current password!",
-            });
-
+        const { password, newPassword } = req.body;
+        const email = req.email
         //find user by id in database
-        const user = await User.findById(id).select("+password").exec();
+        const user = await UserServices.findUserByColumn({ email }, "+password");
 
         if (!user)
             return res.json({ success: false, message: "User not found!" });
 
-        //return res.json(user);
+        const isSamePassword = compareSync(newPassword, user.password);
+        if (isSamePassword)
+            return res.json({
+                success: false,
+                message:
+                    "Your new password can't be the same with your current password!",
+            });
 
         const isCorrect = compareSync(password, user.password);
 
@@ -123,36 +98,94 @@ const updateUser = async (req, res) => {
                 message: "Password is incorrect!",
             });
 
-        user.name = name;
-        user.password =
-            newPassword?.trim().length >= 8
-                ? hashSync(newPassword, 10)
-                : user.password;
-        const result = await user.save();
+        const hashedPassword = hashSync(newPassword, 10);
+        const result = await UserServices.updateUser(user._id, { password: hashedPassword })
+
         return res.json({
             success: true,
-            data: result,
-            message: "Your account has been updated successfully!",
+            message: "Password changed successfully!",
         });
     } catch (error) {
         return res.json({ success: false, error: error });
     }
 };
 
+// change name
+// PUT method
+const changeName = async (req, res) => {
+    try {
+        const { id, name } = req.body;
+
+        //find user by id in database
+        const user = await UserServices.findUserByColumn({ _id: id });
+        if (!user)
+            return res.json({ success: false, message: "User not found!" });
+
+        const result = await UserServices.updateUser(id, { name })
+
+        if(!result) return res.json({ success: false, message: "Error changing username!"});
+
+        return res.json({
+            success: true,
+            message: "Your name has been changed successfully!",
+        });
+    } catch (error) {
+        return res.json({ success: false, error: error });
+    }
+}
+
+// change email
+// PUT method
+const changeEmail = async (req, res) => {
+    try {
+        const { newEmail, password } = req.body;
+        const email = req.email;
+
+        // console.log(newEmail, password, email); return;
+
+        //find user by id in database
+        const user = await UserServices.findUserByColumn({email : email}, "+password");
+        if (!user)
+            return res.json({ success: false, message: "User not found!" });
+
+        const isCorrect = compareSync(password, user.password);
+
+        if (!isCorrect) return res.json({ success: false, message: "Password is incorrect!" });
+
+        const duplicateEmail = await UserServices.findUserByColumn({email : newEmail});
+
+        if(duplicateEmail) return res.json({ success: false, message: "Email already exists!" });
+
+        const otp = generateOTP();
+        const otpExpirationTime = Date.now() + 180000; // 3 minutes
+
+        // sending OTP to user email
+        const emailText = `<p><strong>Dear ${user.name}, </strong><br/><br/><br/> Thank you for using our blog app! <br/>Here is the OTP code, please use this One-Time Password (OTP) to verify your email address. <br/><br/> Your OTP is: <strong> ${otp} </strong> <br/><br/><br/> Best regards, <br/> PK-Blog Team. </p>`;
+        const emailResult = await sendEmail(newEmail, "Verify your email address!", emailText)
+        if(!emailResult) return res.json({success: false, message: "Error sending email!"});
+
+        const result  = await UserServices.updateUser( user._id, { otp, otpExpirationTime});
+        
+        if(!result) return res.json({ success: false, message: "Error changing email!"});
+
+        return res.json({
+            success: true,
+            message: "The OTP code has been sent to your new email address!",
+        });
+    } catch (error) {
+        return res.json({ success: false, error: error });
+    }
+}
+
 //deleting user
 //DELETE method
 const deleteUser = async (req, res) => {
     try {
-        const { id, password } = req.body;
-
-        if (!id)
-            return res.json({
-                success: false,
-                message: "ID & password are required to deactivate account !",
-            });
+        const {password } = req.body;
+        const email = req.email
 
         //find User in database
-        const user = await User.findById(id).select("+password").exec();
+        const user = await UserServices.findUserByColumn({email}, "+password");
 
         if (!user)
             return res.json({ success: false, message: "User not found!" });
@@ -165,7 +198,7 @@ const deleteUser = async (req, res) => {
                 message: "Password is incorrect!",
             });
         //deleting blogs before the account is deleted!
-        const deleteBlogs = await Blog.deleteMany({ userId: id });
+        const deleteBlogs = await Blog.deleteMany({ userId: user?._id });
         const result = await user.deleteOne();
         return res.json({
             success: true,
@@ -185,12 +218,15 @@ const getUserById = async (req, res) => {
             return res.json({ success: false, message: "ID is required!" });
 
         //find user by id in database
-        const user = await searchUserById(User, id);
+        const user = await UserServices.findUserByColumn({ _id: id });
 
         if (!user)
             return res.json({ success: false, message: "User not found!" });
 
-        return res.json({ success: true, data: user });
+        return res.json({ success: true, data: {
+            email : user.email, name : user.name, _id : user._id, savedBlogs : user.savedBlogs,
+                profileImage : user.profileImage
+            } });
     } catch (error) {
         return res.json({ success: false, error: error });
     }
@@ -217,7 +253,7 @@ const setSavedBlog = async (req, res) => {
                 message: `Blog ID ${blogId} not found!`,
             });
 
-        const user = await User.findById(userId).lean().exec();
+        const user = await UserServices.findUserByColumn({ _id: userId });
 
         if (!user)
             return res.json({
@@ -266,7 +302,7 @@ const getUserSavedBlogs = async (req, res) => {
                 message: "User ID is required!",
             });
 
-        const user = await User.findById(userId).lean().exec();
+        const user = await UserServices.findUserByColumn({ _id: userId })
 
         if (!user)
             return res.json({
@@ -291,12 +327,49 @@ const getUserSavedBlogs = async (req, res) => {
     }
 };
 
+//update profile
+//PUT method
+const changeProfilePicture = async (req, res) => {
+    try {
+        const {body, file} = req;
+        const id = body?.id;
+        const profileImage = file?.originalname || null;
+
+        if (!id) return res.json({ success: false, message: "User ID is required!" });
+
+        //find user by id in database
+        const user = await UserServices.findUserByColumn({ _id: id });
+        if (!user)
+            return res.json({ success: false, message: "User not found!" });
+
+        if(user?.profileImage){
+            const deleteResult = await deleteImage(user?.profileImage);
+            if(!deleteResult) return res.json({ success: false, message: "Error deleting profile!"});
+        }
+
+        const result = await UserServices.updateUser(id, { profileImage });
+
+        if(!result) return res.json({ success: false, message: "Error updating profile!"});
+
+        return res.json({
+            success: true,
+            message: "Your profile picture has been updated successfully!",
+        });
+    } catch (error) {
+        return res.json({ success: false, error: error });
+    }
+}
+
 module.exports = {
+    getCurrentUser,
     getAllUsers,
     createNewUser,
-    updateUser,
+    changeName,
+    changePassword,
+    changeEmail,
     deleteUser,
     getUserById,
     setSavedBlog,
     getUserSavedBlogs,
+    changeProfilePicture
 };

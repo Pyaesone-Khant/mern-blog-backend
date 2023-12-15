@@ -7,3 +7,4 @@ pnpm-debug.log*
 dist
 .env
 node_modules
+uploads

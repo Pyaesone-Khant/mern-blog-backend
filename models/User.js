@@ -18,6 +18,22 @@ const userSchema = new mongoose.Schema({
         type: Array,
         default: [],
     },
+    otp : {
+        type: String,
+        default: null,
+    },
+    otpExpirationTime: {
+        type : Date,
+        default: Date.now() + 180000,
+    },
+    isVerified: {
+        type : Boolean,
+        default: false,
+    },
+    profileImage: {
+        type: String,
+        default: "",
+    }
 });
 
 module.exports = mongoose.model("User", userSchema);
