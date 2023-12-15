@@ -270,20 +270,22 @@ const getBlogsByUserId = async (req, res) => {
 const searchBlogsByTitle = async (req, res) => {
     try {
         const ObjectId = mongoose.Types.ObjectId;
-        const { title, categoryId } = req.body;
-        // const pageToSkip = parseInt(page) - 1;
+        const { title } = req.body;
         if (!title)
             return res.json({
                 success: false,
                 message: "Title is required to search blogs!",
             });
 
-        let blogs;
-        if(ObjectId.isValid(categoryId)){
-            blogs = await Blog.find({categoryId}).lean()
-        }else{
-            blogs = await Blog.find().lean()
-        }
+        // let blogs;
+        // if(ObjectId.isValid(categoryId)){
+        //     blogs = await Blog.find({categoryId}).lean()
+        // }else{
+        //     blogs = await Blog.find().lean()
+        // }
+
+        const blogs = await Blog.find().lean();
+
         const searchedBlogs = blogs?.filter((blog) =>
             blog.title.toLowerCase().includes(title.toLowerCase())
         );
