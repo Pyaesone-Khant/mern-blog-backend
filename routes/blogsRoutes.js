@@ -6,7 +6,7 @@ const {
     deleteBlog,
     getBlogById,
     setBlogLikes,
-    getBlogsByUserId, searchBlogsByTitle,
+    getBlogsByUserId, searchBlogsByTitle, getRecommendedBlogs,
 } = require("../controllers/BlogsController");
 const authToken = require("../middlewares/authToken");
 const router = express.Router();
@@ -21,6 +21,8 @@ router
 router.route("/:id").get(getBlogById);
 router
     .post("/reactions", authToken, setBlogLikes)
-    .get("/getUserBlogs/:userId", getBlogsByUserId).post("/search", searchBlogsByTitle)
+    .get("/getUserBlogs/:userId", getBlogsByUserId)
+    .post("/search", searchBlogsByTitle)
+    .get("/recommendedBlogs/:categoryId", getRecommendedBlogs)
 
 module.exports = router;

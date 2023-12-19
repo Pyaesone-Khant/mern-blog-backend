@@ -29,7 +29,16 @@ const getCurrentUser = async (req, res) => {
         const email = req.email;
         const user = await UserServices.findUserByColumn({email}, "-password -otp -otpExpirationTime -isVerified -__v");
         if (!user) return res.json({ success: false, message: "User not found!" });
-        return res.json({ success: true, data: user });
+
+        const currentUser = {
+            email : user.email,
+            name : user.name,
+            _id : user._id,
+            savedBlogs : user.savedBlogs,
+            profileImage : user?.profileImage ?  process.env.AWS_OBJECT_URL + user.profileImage : null
+        }
+
+        return res.json({ success: true, data: currentUser });
     }catch (error) {
         return res.json({ success: false, error: error });
     }
@@ -223,10 +232,15 @@ const getUserById = async (req, res) => {
         if (!user)
             return res.json({ success: false, message: "User not found!" });
 
-        return res.json({ success: true, data: {
-            email : user.email, name : user.name, _id : user._id, savedBlogs : user.savedBlogs,
-                profileImage : user.profileImage
-            } });
+        const userData =  {
+            email : user.email,
+            name : user.name,
+            _id : user._id,
+            savedBlogs : user.savedBlogs,
+            profileImage : user?.profileImage ?  process.env.AWS_OBJECT_URL + user.profileImage : null
+        }
+
+        return res.json({ success: true, data: userData });
     } catch (error) {
         return res.json({ success: false, error: error });
     }
@@ -271,7 +285,7 @@ const setSavedBlog = async (req, res) => {
             );
             return res.json({
                 success: true,
-                message: `Blog with ID ${blogId} un-saved successfully!`,
+                message: `Blog removed from bookmarks successfully!`,
                 data: result,
             });
         }
@@ -282,7 +296,7 @@ const setSavedBlog = async (req, res) => {
         );
         return res.json({
             success: true,
-            message: `Blog saved successfully!`,
+            message: `Blog saved to bookmarks successfully!`,
             data: result,
         });
     } catch (error) {

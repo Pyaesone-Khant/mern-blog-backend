@@ -1,8 +1,8 @@
 const { default: mongoose } = require("mongoose");
 const Blog = require("../models/Blog");
 const User = require("../models/User");
-const ImageServices = require("../services/ImageServices");
 const deleteImage = require("../middlewares/deleteImage");
+const BlogServices = require("../services/BlogServices");
 
 
 //getting all Blogs
@@ -38,14 +38,27 @@ const getAllBlogs = async (req, res) => {
 
         if (!blogs?.length)
             return res.json({
-                success: false,
+                success: true,
                 message: "There is no Blogs for now!",
             });
+
+        const modBlogs = blogs?.map((blog) => {
+            return {
+                _id : blog?._id,
+                title : blog?.title,
+                description : blog?.description,
+                userId : blog?.userId,
+                categoryId : blog?.categoryId,
+                blogImage : blog?.blogImage ? process.env.AWS_OBJECT_URL + blog?.blogImage : null,
+                createdAt : blog?.createdAt,
+                reactions : blog?.reactions,
+            }
+        });
 
         return res.json({
             page,
             success: true,
-            data: blogs,
+            data: modBlogs,
             totalBlogs: totalBlogs,
         });
     } catch (error) {
@@ -179,7 +192,17 @@ const getBlogById = async (req, res) => {
         if (!blog)
             return res.json({ success: false, message: "Blog not found!" });
 
-        return res.json({ success: true, data: blog });
+        const modBlog = {
+            _id : blog?._id,
+            title : blog?.title,
+            description : blog?.description,
+            userId : blog?.userId,
+            categoryId : blog?.categoryId,
+            blogImage : blog?.blogImage ? process.env.AWS_OBJECT_URL + blog?.blogImage : null,
+            createdAt : blog?.createdAt,
+            reactions : blog?.reactions,
+        }
+        return res.json({ success: true, data: modBlog });
     } catch (error) {
         return res.json({ success: false, error: error });
     }
@@ -302,6 +325,37 @@ const searchBlogsByTitle = async (req, res) => {
     }
 };
 
+// get recommended blogs
+// GET method
+const getRecommendedBlogs = async (req, res) => {
+    try{
+        const { categoryId } = req.params || null;
+        if(!categoryId)
+            return res.json({success: false, message: "Category ID is required!"});
+
+        const blogs = await Blog.find({categoryId}).lean();
+
+        const modBlogs = blogs?.map((blog) => {
+            return {
+                _id : blog?._id,
+                title : blog?.title,
+                description : blog?.description,
+                userId : blog?.userId,
+                categoryId : blog?.categoryId,
+                blogImage : blog?.blogImage ? process.env.AWS_OBJECT_URL + blog?.blogImage : null,
+                createdAt : blog?.createdAt,
+                reactions : blog?.reactions,
+            }
+        });
+
+        if(!modBlogs?.length) return res.json({success: true, message: "No recommended blogs found!"});
+
+        return res.json({success: true, data: modBlogs});
+    }catch(error){
+        throw new Error(error);
+    }
+}
+
 module.exports = {
     getAllBlogs,
     createNewBlog,
@@ -310,5 +364,6 @@ module.exports = {
     getBlogById,
     setBlogLikes,
     getBlogsByUserId,
-    searchBlogsByTitle
+    searchBlogsByTitle,
+    getRecommendedBlogs
 };

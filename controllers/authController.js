@@ -83,19 +83,17 @@ const userLogin = async (req, res) => {
         if (!isCorrect)
             return res.json({ success: false, message: errMessage });
 
+        const expiredAt = Date.now() + 60 * 60 * 24 * 1000;
+
         const token = jwt.sign({ email : user?.email }, process.env.ACCESS_SECRET_TOKEN, {
-            expiresIn: 60 * 60 * 24,
+            expiresIn: Math.floor(expiredAt / 1000),
         });
 
         res.cookie("accessToken", token, { httpOnly: false });
 
         return res.json({
             success: true,
-            user: {
-                _id : user._id,
-                name : user.name,
-                email : user.email,
-            },
+            expiredAt,
             token: token,
             message: "Login successful!",
         });
@@ -188,6 +186,7 @@ const verifyOTP = async (req, res) => {
     try {
         const { email, otp } = req.body;
         const newEmail = req.body?.newEmail || null;
+        const currentTime = Date.now();
 
         const user = await UserServices.findUserByColumn({email});
         if (!user)
@@ -195,6 +194,8 @@ const verifyOTP = async (req, res) => {
                 success: false,
                 message: "Email does not exist!",
             });
+
+        if(user.otpExpirationTime < currentTime) return res.json({success: false, message: "OTP has expired!"});
 
         if(user.otp !== otp)
             return res.json({
