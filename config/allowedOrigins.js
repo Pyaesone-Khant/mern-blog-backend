@@ -1,5 +1,5 @@
 const allowedOrigins = [
-    "https://pk-blogapp.netlify.app",
+    "https://writee.netlify.app",
     "http://localhost:3000",
 ];
 
