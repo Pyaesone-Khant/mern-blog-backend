@@ -5,8 +5,7 @@ const {
     deleteUser,
     getUserById,
     createNewUser,
-    setSavedBlog,
-    getUserSavedBlogs, changePassword, getCurrentUser, changeEmail, changeProfilePicture,
+    setSavedBlog, changePassword, getCurrentUser, changeEmail, changeProfilePicture, getSavedBlogs,
 } = require("../controllers/UsersController");
 const router = express.Router();
 const authToken = require("../middlewares/authToken");
@@ -19,8 +18,9 @@ router
     .put(authToken, changeName)
     .delete(authToken, deleteUser);
 router.route("/:id").get(getUserById);
-router.route("/save_blogs/:userId").post(authToken, setSavedBlog).get(authToken, getUserSavedBlogs);
-router.put("/change-password", authToken,  changePassword).put("/change-email", authToken, changeEmail);
+router.route("/save-blogs").post(authToken, setSavedBlog);
+router.get("/saved-blogs/:userId", authToken, getSavedBlogs);
+router.put("/change-password", authToken, changePassword).put("/change-email", authToken, changeEmail);
 router.put("/change-avatar", authToken, upload.single("profileImage"), changeProfilePicture);
 
 module.exports = router;

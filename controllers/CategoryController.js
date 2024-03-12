@@ -1,19 +1,16 @@
 const Category = require("../models/Category");
+const Blog = require("../models/Blog");
+const {ResponseObj, formatData} = require("../helpers/utils");
 
 //getting all categories
 //GET method
 const getAllCategories = async (req, res) => {
     try {
         const categories = await Category.find().lean();
-
-        if (!categories?.length)
-            return res.json({
-                success: false,
-                message: "There is no categories for now!",
-            });
-        return res.json({ success: true, data: categories });
+        if (!categories?.length) return ResponseObj(res, 200, []);
+        return ResponseObj(res, 200, categories);
     } catch (error) {
-        return res.json({ success: false, error: error });
+        return ResponseObj(res, 500, {message: "Internal server error!"});
     }
 };
 
@@ -21,23 +18,21 @@ const getAllCategories = async (req, res) => {
 //POST method
 const createNewCategory = async (req, res) => {
     try {
-        const { title } = req.body;
+        const email = req.email;
+
+        if (email !== process.env.ADMIN_EMAIL) return ResponseObj(res, 403, {message: "Unauthorized!"});
+
+        const {title} = req.body;
 
         if (title.trim().length < 4)
-            return res.json({
-                success: false,
-                message: "category title is too short!",
-            });
+            return ResponseObj(res, 400, {message: "Category title is too short!"});
 
-        const duplicate = await Category.findOne({ title }).lean().exec();
+        const duplicate = await Category.findOne({title}).lean().exec();
 
         if (duplicate)
-            return res.json({
-                success: false,
-                message: `Duplicated category!`,
-            });
+            return ResponseObj(res, 400, {message: "Category with this title already exists!"});
 
-        const categoryObj = { title };
+        const categoryObj = {title};
 
         const category = await Category.create(categoryObj);
 
@@ -46,12 +41,9 @@ const createNewCategory = async (req, res) => {
                 success: false,
                 message: "Error creating new category!",
             });
-        return res.json({
-            success: true,
-            message: "New category has been created.",
-        });
+        return ResponseObj(res, 201, {success: true, message: "Category has been created successfully!"});
     } catch (error) {
-        return res.json({ success: false, error: error });
+        return ResponseObj(res, 500, {message: "Internal server error!"});
     }
 };
 
@@ -59,37 +51,29 @@ const createNewCategory = async (req, res) => {
 //PUT method
 const updateCategory = async (req, res) => {
     try {
-        const { id, title } = req.body;
 
+        const email = req.email;
+
+        if (email !== process.env.ADMIN_EMAIL) return ResponseObj(res, 403, {message: "Unauthorized!"});
+
+        const {id, title} = req.body;
         if (!id)
-            return res.json({
-                success: false,
-                message: "Category id is required to update category!",
-            });
+            return ResponseObj(res, 400, {message: "Category ID is required!"});
 
         if (title.trim().length < 5)
-            return res.json({
-                success: false,
-                message: "Category title is too short!",
-            });
+            return ResponseObj(res, 400, {message: "Category title is too short!"});
 
         //find category by id in database
         const category = await Category.findById(id).exec();
 
         if (!category)
-            return res.json({ success: false, message: "Category not found!" });
-
-        //return res.json(category);
+            return ResponseObj(res, 404, {message: "Category not found!"});
 
         category.title = title;
         const result = await category.save();
-        return res.json({
-            success: true,
-            data: result,
-            message: "Category has been updated successfully!",
-        });
+        return ResponseObj(res, 200, {success: true, message: "Category has been updated successfully!"});
     } catch (error) {
-        return res.json({ success: false, error: error });
+        return ResponseObj(res, 500, {message: "Internal server error!"});
     }
 };
 
@@ -97,27 +81,20 @@ const updateCategory = async (req, res) => {
 //DELETE method
 const deleteCategory = async (req, res) => {
     try {
-        const { id } = req.body;
+        const {id} = req.body;
 
         if (!id)
-            return res.json({
-                success: false,
-                message: "Category id is required to delete category!",
-            });
+            return ResponseObj(res, 400, {message: "Category ID is required!"});
 
         //find category in database
         const category = await Category.findById(id).exec();
 
-        if (!category)
-            return res.json({ success: false, message: "Category not found!" });
+        if (!category) return ResponseObj(res, 404, {message: "Category not found!"});
 
         const result = await category.deleteOne();
-        return res.json({
-            success: true,
-            message: "Category has been deleted successfully!",
-        });
+        return ResponseObj(res, 200, {success: true, message: "Category has been deleted successfully!"});
     } catch (error) {
-        return res.json({ success: false, error: error });
+        return ResponseObj(res, 500, {message: "Internal server error!"})
     }
 };
 
@@ -125,22 +102,38 @@ const deleteCategory = async (req, res) => {
 //GET method
 const getCategoryById = async (req, res) => {
     try {
-        const { id } = req.params;
-        if (!id)
-            return res.json({
-                success: false,
-                message: "Category id is required!",
-            });
-
+        const {id} = req.params;
+        if (!id) return ResponseObj(res, 400, {message: "Category ID is required!"});
         //find category by id in database
         const category = await Category.findById(id).exec();
         if (!category)
-            return res.json({ success: false, message: "Category not found!" });
-        return res.json({ success: true, data: category });
+            return ResponseObj(res, 404, {message: "Category not found!"});
+        return ResponseObj(res, 200, category);
     } catch (error) {
-        return res.json({ success: false, error: error });
+        return ResponseObj(res, 500, {message: "Internal server error!"});
     }
 };
+
+// get blogs by category
+const getBlogsByCategory = async (req, res) => {
+    try {
+        const {id: categoryId} = req.params;
+        if (!categoryId)
+            return ResponseObj(res, 400, {message: "Category ID is required!"});
+
+        const blogs = await Blog.find({categoryId}).sort({createdAt: -1}).lean().exec();
+
+        if (!blogs?.length)
+            return ResponseObj(res, 200, []);
+
+        const modBlogs = formatData(blogs)
+
+        return ResponseObj(res, 200, modBlogs);
+    } catch (error) {
+        return ResponseObj(res, 500, {message: "Internal server error!"});
+    }
+
+}
 
 module.exports = {
     getAllCategories,
@@ -148,4 +141,5 @@ module.exports = {
     updateCategory,
     deleteCategory,
     getCategoryById,
+    getBlogsByCategory
 };

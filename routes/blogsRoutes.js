@@ -6,12 +6,13 @@ const {
     deleteBlog,
     getBlogById,
     setBlogLikes,
-    getBlogsByUserId, searchBlogsByTitle, getRecommendedBlogs,
+    getBlogsByUserId, getRecommendedBlogs, getRandomBlogs, getSearchBlogs,
 } = require("../controllers/BlogsController");
 const authToken = require("../middlewares/authToken");
 const router = express.Router();
 const upload = require("../config/aws");
 
+router.get("/random", getRandomBlogs).get("/search", getSearchBlogs);
 router
     .route("/")
     .get(getAllBlogs)
@@ -21,8 +22,7 @@ router
 router.route("/:id").get(getBlogById);
 router
     .post("/reactions", authToken, setBlogLikes)
-    .get("/getUserBlogs/:userId", getBlogsByUserId)
-    .post("/search", searchBlogsByTitle)
+    .get("/user-blogs/:userId", getBlogsByUserId)
     .get("/recommendedBlogs/:categoryId", getRecommendedBlogs)
 
 module.exports = router;

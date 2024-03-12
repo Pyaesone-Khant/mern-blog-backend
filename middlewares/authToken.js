@@ -12,6 +12,7 @@ const authToken = (req, res, next) => {
         const token = accessToken.split(" ")[1];
         const decoded = jwt.verify(token, process.env.ACCESS_SECRET_TOKEN)
         req.email = decoded?.email;
+        req.expTime = decoded?.expTime;
         next();
     } catch (error) {
         return res.json({

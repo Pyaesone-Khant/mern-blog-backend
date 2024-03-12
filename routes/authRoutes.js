@@ -1,7 +1,16 @@
 const express = require("express");
-const { userLogin, userLogout, forgotPassword, registerNewUser, resetPassword, verifyOTP, resendOTP} = require("../controllers/authController");
-// const { createNewUser } = require("../controllers/UsersController");
+const {
+    userLogin,
+    userLogout,
+    forgotPassword,
+    registerNewUser,
+    resetPassword,
+    verifyOTP,
+    resendOTP,
+    getRefreshToken,
+} = require("../controllers/authController");
 const router = express.Router();
+const authToken = require("../middlewares/authToken");
 
 router
     .post("/register", registerNewUser)
@@ -10,6 +19,7 @@ router
     .post("/forgot-password", forgotPassword)
     .post("/reset-password", resetPassword)
     .post("/verify-otp", verifyOTP)
-    .post("/resend-otp", resendOTP);
+    .post("/resend-otp", resendOTP)
+    .get("/refresh-token", authToken, getRefreshToken)
 
 module.exports = router;
