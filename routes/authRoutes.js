@@ -8,7 +8,8 @@ const {
     verifyOTP,
     resendOTP,
     getRefreshToken,
-} = require("../controllers/authController");
+    getSearchedData,
+} = require("../controllers/AuthController");
 const router = express.Router();
 const authToken = require("../middlewares/authToken");
 
@@ -20,6 +21,7 @@ router
     .post("/reset-password", resetPassword)
     .post("/verify-otp", verifyOTP)
     .post("/resend-otp", resendOTP)
-    .get("/refresh-token", authToken, getRefreshToken)
+    .get("/search", getSearchedData)
+    .get("/refresh-token", authToken, getRefreshToken);
 
 module.exports = router;
