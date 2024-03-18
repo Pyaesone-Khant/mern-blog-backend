@@ -11,4 +11,8 @@ const ResponseObj = (res, status, data) => {
     return res.status(status).json(data);
 }
 
-module.exports = {formatData, ResponseObj}
+const transformImageUrl = (image) => {
+    return image ? process.env.AWS_OBJECT_URL + image : null;
+}
+
+module.exports = { formatData, ResponseObj, transformImageUrl }

@@ -4,7 +4,7 @@ const {
     updateComment,
     deleteComment,
     getCommentById,
-} = require("../controllers/commentController");
+} = require("../controllers/CommentController");
 
 const authToken = require("../middlewares/authToken");
 const router = require("express").Router();
@@ -12,10 +12,10 @@ const router = require("express").Router();
 router
     .route("/")
     .get(getAllComments)
-    .post( authToken, createNewComment)
-    .put( authToken, updateComment)
-    .delete( authToken, deleteComment);
+    .post(authToken, createNewComment)
+    .put(authToken, updateComment)
+    .delete(authToken, deleteComment);
 
-router.route("/:id").get( authToken, getCommentById);
+router.route("/:id").get(authToken, getCommentById);
 
 module.exports = router;
