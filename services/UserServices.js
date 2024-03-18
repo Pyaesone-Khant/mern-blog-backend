@@ -55,7 +55,8 @@ class UserServices {
             const searchedUsers = users?.filter((user) => {
                 return user.name.toLowerCase().includes(keyword.toLowerCase());
             }).map(user => ({
-                ...user, profileImage: user?.profileImage ? transformImageUrl(user?.profileImage) : null
+                ...user,
+                profileImage: transformImageUrl(user?.profileImage)
             }))
             return searchedUsers;
         } catch (error) {

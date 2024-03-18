@@ -1,19 +1,19 @@
-const {compareSync, hashSync} = require("bcrypt");
+const { compareSync, hashSync } = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const sendEmail = require("../helpers/mailSender");
 const generateOTP = require("../helpers/otpGenerator");
-const {UserServices, BlogServices, CategoryServices} = require("../services")
-const {ResponseObj} = require("../helpers/utils");
+const { UserServices, BlogServices, CategoryServices } = require("../services")
+const { ResponseObj } = require("../helpers/utils");
 
 //creating new user
 //POST method
 const registerNewUser = async (req, res) => {
     try {
-        const {name, email, password} = req.body;
+        const { name, email, password } = req.body;
 
-        const duplicate = await UserServices.findUserByColumn({email});
+        const duplicate = await UserServices.findUserByColumn({ email });
         if (duplicate && duplicate.isVerified)
-            return ResponseObj(res, 400, {message: "Email already exist!"})
+            return ResponseObj(res, 400, { message: "Email already exist!" })
 
         const otp = generateOTP();
         const hashedPassword = hashSync(password, 10);
@@ -29,7 +29,7 @@ const registerNewUser = async (req, res) => {
             };
             const user = await UserServices.updateUser(duplicate._id, userData);
             if (!user)
-                return ResponseObj(res, 400, {message: "Error verifying email address!"})
+                return ResponseObj(res, 400, { message: "Error verifying email address!" })
 
             // sending OTP to user email
             const emailText = `<p><strong>Dear ${name}, </strong> <br/><br/><br/> Thank you for registering on our blog app! <br/> To complete the registration process and verify your email, please use this One-Time Password (OTP). <br/><br/> Your OTP : <strong> ${otp} </strong> <br/><br/> Thank you for using our blog app! <br/><br/><br/> Best regards, <br/> Writee. </p>`;
@@ -41,9 +41,9 @@ const registerNewUser = async (req, res) => {
             );
 
             if (!result)
-                return ResponseObj(res, 400, {message: "Error sending email!"})
+                return ResponseObj(res, 400, { message: "Error sending email!" })
 
-            return ResponseObj(res, 200, {message: "Please verified your email address!"})
+            return ResponseObj(res, 200, { message: "Please verified your email address!" })
         } else {
             //if email does not exist then create new user
             const userObj = {
@@ -56,7 +56,7 @@ const registerNewUser = async (req, res) => {
             const user = await UserServices.createUser(userObj);
 
             if (!user)
-                return ResponseObj(res, 400, {message: "Error registering user account!"})
+                return ResponseObj(res, 400, { message: "Error registering user account!" })
 
             // sending OTP to user email
             const emailText = `<p><strong>Dear ${name}, </strong> <br/><br/><br/> Thank you for registering on our blog app! <br/> To complete the registration process and verify your email, please use this One-Time Password (OTP). <br/><br/> Your OTP is: <strong> ${otp} </strong> <br/><br/> Thank you for using our blog app! <br/><br/><br/> Best regards, <br/> Writee. </p>`;
@@ -68,12 +68,12 @@ const registerNewUser = async (req, res) => {
             );
 
             if (!result)
-                return ResponseObj(res, 500, {message: "Error sending email!"})
+                return ResponseObj(res, 500, { message: "Error sending email!" })
 
-            return ResponseObj(res, 200, {message: "Please verified your email address!"})
+            return ResponseObj(res, 200, { message: "Please verified your email address!" })
         }
     } catch (error) {
-        return ResponseObj(res, 500, {message: error.message || "Internal server error!"})
+        return ResponseObj(res, 500, { message: error.message || "Internal server error!" })
     }
 };
 
@@ -81,37 +81,38 @@ const registerNewUser = async (req, res) => {
 //POST method
 const userLogin = async (req, res) => {
     try {
-        const {email, password} = req.body;
+        const { email, password } = req.body;
         const errMessage = "Email or password is wrong!";
 
         const user = await UserServices.findUserByColumn(
-            {email},
+            { email },
             "+password"
         );
 
-        if (!user) return res.json({success: false, message: errMessage});
+        if (!user) return ResponseObj(res, 400, { message: errMessage })
 
         if (!user?.isVerified)
             return ResponseObj(res, 400, {
                 message: "Please re-register your account & verify your email address!"
             })
 
+
         const isCorrect = compareSync(password, user.password);
 
         if (!isCorrect)
-            return ResponseObj(res, 400, {message: errMessage})
+            return ResponseObj(res, 400, { message: errMessage })
 
         const expiredAt = Date.now() + 60 * 60 * 24 * 1000;
 
         const token = jwt.sign(
-            {email: user?.email, expTime: expiredAt},
+            { email: email, expTime: expiredAt },
             process.env.ACCESS_SECRET_TOKEN,
             {
                 expiresIn: Math.floor(expiredAt / 1000),
             }
         );
 
-        res.cookie("accessToken", token, {httpOnly: false});
+        res.cookie("accessToken", token, { httpOnly: false });
 
         return ResponseObj(res, 200, {
             expiredAt,
@@ -119,7 +120,7 @@ const userLogin = async (req, res) => {
             message: "Login successful!",
         })
     } catch (error) {
-        return ResponseObj(res, 500, {message: error.message || "Internal server error!"})
+        return ResponseObj(res, 500, { message: error.message || "Internal server error!" })
     }
 };
 
@@ -127,13 +128,13 @@ const userLogin = async (req, res) => {
 //POST method
 const userLogout = async (req, res) => {
     try {
-        const {token} = req.body;
-        if (!token)
-            return res.json({success: false, message: "Failed to logout!"});
+        const email = req.email;
+        if (!email)
+            return ResponseObj(res, 400, { message: "Token is required!" })
 
-        return res.json({success: true, message: "Logout successful!"});
+        return ResponseObj(res, 200, { message: "Logout successful!" })
     } catch (error) {
-        return ResponseObj(res, 500, {message: error.message || "Internal server error!"})
+        return ResponseObj(res, 500, { message: error.message || "Internal server error!" })
     }
 };
 
@@ -141,20 +142,20 @@ const userLogout = async (req, res) => {
 // POST method
 const forgotPassword = async (req, res) => {
     try {
-        const {email} = req.body;
-        const user = await UserServices.findUserByColumn({email});
+        const { email } = req.body;
+        const user = await UserServices.findUserByColumn({ email });
         if (!user)
-            return ResponseObj(res, 400, {message: "Email does not exist!"})
+            return ResponseObj(res, 400, { message: "Email does not exist!" })
 
         const otp = generateOTP();
         const otpExpirationTime = Date.now() + 180000;
 
-        const userData = {otp, otpExpirationTime};
+        const userData = { otp, otpExpirationTime };
 
         const result = await UserServices.updateUser(user._id, userData);
 
         if (!result)
-            return ResponseObj(res, 400, {message: "Error sending OTP!"})
+            return ResponseObj(res, 400, { message: "Error sending OTP!" })
 
         // sending OTP to user email
         const emailText = `<p> <strong>Dear ${user.name}, </strong> <br/><br/><br/> Thank you for using our blog app! <br/>To reset your password, please use this One-Time Password (OTP). <br/><br/> Your OTP is: <strong> ${otp} </strong> <br/><br/><br/> Best regards, <br/> Writee. </p>`;
@@ -166,11 +167,11 @@ const forgotPassword = async (req, res) => {
         );
 
         if (!emailResult)
-            return ResponseObj(res, 400, {message: "Error sending email!"})
+            return ResponseObj(res, 400, { message: "Error sending email!" })
 
-        return ResponseObj(res, 200, {message: "OTP has been sent to your email!"})
+        return ResponseObj(res, 200, { message: "OTP has been sent to your email!" })
     } catch (error) {
-        return ResponseObj(res, 500, {message: error.message || "Internal server error!"})
+        return ResponseObj(res, 500, { message: error.message || "Internal server error!" })
     }
 };
 
@@ -178,22 +179,22 @@ const forgotPassword = async (req, res) => {
 // POST method
 const resetPassword = async (req, res) => {
     try {
-        const {email, password} = req.body;
+        const { email, password } = req.body;
 
-        const user = await UserServices.findUserByColumn({email});
+        const user = await UserServices.findUserByColumn({ email });
         if (!user)
-            return ResponseObj(res, 400, {message: "Email does not exist!"})
+            return ResponseObj(res, 400, { message: "Email does not exist!" })
 
         const hashedPassword = hashSync(password, 10);
-        const userData = {password: hashedPassword};
+        const userData = { password: hashedPassword };
 
         const result = await UserServices.updateUser(user._id, userData);
         if (!result)
-            return ResponseObj(res, 400, {message: "Error resetting password!"})
+            return ResponseObj(res, 400, { message: "Error resetting password!" })
 
-        return ResponseObj(res, 200, {message: "Password has been reset successfully!"})
+        return ResponseObj(res, 200, { message: "Password has been reset successfully!" })
     } catch (error) {
-        return ResponseObj(res, 500, {message: error.message || "Internal server error!"})
+        return ResponseObj(res, 500, { message: error.message || "Internal server error!" })
     }
 };
 
@@ -201,19 +202,19 @@ const resetPassword = async (req, res) => {
 // POST method
 const verifyOTP = async (req, res) => {
     try {
-        const {email, otp} = req.body;
+        const { email, otp } = req.body;
         const newEmail = req.body?.newEmail || null;
         const currentTime = Date.now();
 
-        const user = await UserServices.findUserByColumn({email});
+        const user = await UserServices.findUserByColumn({ email });
         if (!user)
-            return ResponseObj(res, 400, {message: "Email does not exist!"})
+            return ResponseObj(res, 400, { message: "Email does not exist!" })
 
         if (user.otpExpirationTime < currentTime)
-            return ResponseObj(res, 400, {message: "OTP has expired!"})
+            return ResponseObj(res, 400, { message: "OTP has expired!" })
 
         if (user.otp !== otp)
-            return ResponseObj(res, 400, {message: "Invalid OTP!"})
+            return ResponseObj(res, 400, { message: "Invalid OTP!" })
 
         // for changing email
         if (newEmail) {
@@ -224,8 +225,8 @@ const verifyOTP = async (req, res) => {
             };
             const result = await UserServices.updateUser(user._id, userData);
             if (!result)
-                return ResponseObj(res, 400, {message: "Error updating email!"})
-            return ResponseObj(res, 200, {message: "Email has been updated successfully!"})
+                return ResponseObj(res, 400, { message: "Error updating email!" })
+            return ResponseObj(res, 200, { message: "Email has been updated successfully!" })
         } else {
             // for verifying email when new user is registered
             const userData = {
@@ -235,11 +236,11 @@ const verifyOTP = async (req, res) => {
             };
             const result = await UserServices.updateUser(user._id, userData);
             if (!result)
-                return ResponseObj(res, 400, {message: "Error verifying email!"})
-            return ResponseObj(res, 200, {message: "Email has been verified successfully!"})
+                return ResponseObj(res, 400, { message: "Error verifying email!" })
+            return ResponseObj(res, 200, { message: "Email has been verified successfully!" })
         }
     } catch (error) {
-        return ResponseObj(res, 500, {message: error.message || "Internal server error!"})
+        return ResponseObj(res, 500, { message: error.message || "Internal server error!" })
     }
 };
 
@@ -247,20 +248,20 @@ const verifyOTP = async (req, res) => {
 // POST method
 const resendOTP = async (req, res) => {
     try {
-        const {email} = req.body;
-        const user = await UserServices.findUserByColumn({email});
+        const { email } = req.body;
+        const user = await UserServices.findUserByColumn({ email });
         if (!user)
-            return ResponseObj(res, 400, {message: "Email does not exist!"})
+            return ResponseObj(res, 400, { message: "Email does not exist!" })
 
         const otp = generateOTP();
         const otpExpirationTime = Date.now() + 180000;
 
-        const userData = {otp, otpExpirationTime};
+        const userData = { otp, otpExpirationTime };
 
         const result = await UserServices.updateUser(user._id, userData);
 
         if (!result)
-            return ResponseObj(res, 400, {message: "Error sending OTP!"})
+            return ResponseObj(res, 400, { message: "Error sending OTP!" })
 
         // sending OTP to user email
         const emailText = `<p><strong>Dear ${user.name}, </strong><br/><br/><br/> Thank you for using our blog app! <br/>Here is the new OTP code you have requested, please use this One-Time Password (OTP). <br/><br/> Your OTP is: <strong> ${otp} </strong> <br/><br/><br/> Best regards, <br/> Writee. </p>`;
@@ -272,11 +273,11 @@ const resendOTP = async (req, res) => {
         );
 
         if (!emailResult)
-            return ResponseObj(res, 400, {message: "Error sending email!"})
+            return ResponseObj(res, 400, { message: "Error sending email!" })
 
-        return ResponseObj(res, 200, {message: "The new OTP has been sent to your email!"})
+        return ResponseObj(res, 200, { message: "The new OTP has been sent to your email!" })
     } catch (error) {
-        return ResponseObj(res, 500, {message: error.message || "Internal server error!"})
+        return ResponseObj(res, 500, { message: error.message || "Internal server error!" })
     }
 };
 
@@ -286,16 +287,16 @@ const getSearchedData = async (req, res) => {
     try {
         const keyword = req.query?.q;
 
-        if (!keyword) return ResponseObj(res, 400, {message: "Search query is required!"});
+        if (!keyword) return ResponseObj(res, 400, { message: "Search query is required!" });
 
         const users = await UserServices.searchUsers(keyword);
         const blogs = await BlogServices.searchBlogs(keyword);
         const categories = await CategoryServices.searchCategories(keyword);
 
-        return ResponseObj(res, 200, {users, blogs, categories})
+        return ResponseObj(res, 200, { users, blogs, categories })
 
     } catch (error) {
-        return ResponseObj(res, 500, {message: error.message})
+        return ResponseObj(res, 500, { message: error.message || "Internal server error!" })
     }
 }
 
@@ -306,11 +307,11 @@ const getRefreshToken = async (req, res) => {
         const tokenExpireTime = req.expTime;
         const email = req.email;
         if (new Date(tokenExpireTime) > new Date())
-            return ResponseObj(res, 400, {message: "Token hasn't expired yet!"})
+            return ResponseObj(res, 400, { message: "Token hasn't expired yet!" })
 
         const expiredAt = Date.now() + 60 * 60 * 24 * 1000;
         const newToken = jwt.sign(
-            {email: email, expTime: expiredAt},
+            { email: email, expTime: expiredAt },
             process.env.ACCESS_SECRET_TOKEN,
             {
                 expiresIn: Math.floor(expiredAt / 1000),
@@ -324,7 +325,7 @@ const getRefreshToken = async (req, res) => {
             message: "Token refreshed successfully!"
         })
     } catch (error) {
-        return ResponseObj(res, 500, {message: "Internal server error!"})
+        return ResponseObj(res, 500, { message: "Internal server error!" })
     }
 };
 
