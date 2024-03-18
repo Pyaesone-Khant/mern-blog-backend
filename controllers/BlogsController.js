@@ -24,7 +24,7 @@ const getAllBlogs = async (req, res) => {
 
         return ResponseObj(res, 200, { data: modBlogs, totalBlogs });
     } catch (error) {
-        return ResponseObj(res, 500, { message: error?.data?.message || "Internal Server Error!" });
+        return ResponseObj(res, 500, { message: error?.message || "Internal Server Error!" });
     }
 };
 
@@ -50,6 +50,8 @@ const createNewBlog = async (req, res) => {
                 message: "Blog with this title already exists!",
             });
 
+
+
         const blogObj = { title, description, userId, categoryId, blogImage };
 
         const blog = await BlogServices.createBlog(blogObj);
@@ -61,7 +63,7 @@ const createNewBlog = async (req, res) => {
         });
     } catch (error) {
         return ResponseObj(res, 500, {
-            message: error?.data?.message || "INTERNAL SERVER ERROR!",
+            message: error?.message || "INTERNAL SERVER ERROR!",
         });
     }
 };
@@ -108,7 +110,7 @@ const updateBlog = async (req, res) => {
         });
     } catch (error) {
         return ResponseObj(res, 500, {
-            message: error?.data?.message || "Internal Server Error!",
+            message: error?.message || "Internal Server Error!",
         });
     }
 };
@@ -143,7 +145,7 @@ const deleteBlog = async (req, res) => {
             message: "Blog has been deleted successfully!",
         });
     } catch (error) {
-        return ResponseObj(res, 500, { message: error?.data?.message || "Internal Server Error!" });
+        return ResponseObj(res, 500, { message: error?.message || "Internal Server Error!" });
     }
 };
 

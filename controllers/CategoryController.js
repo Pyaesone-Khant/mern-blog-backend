@@ -1,6 +1,7 @@
 const Category = require("../models/Category");
 const Blog = require("../models/Blog");
 const { ResponseObj, formatData } = require("../helpers/utils");
+const { UserServices } = require("../services");
 
 //getting all categories
 //GET method
@@ -18,9 +19,11 @@ const getAllCategories = async (req, res) => {
 //POST method
 const createNewCategory = async (req, res) => {
     try {
-        const email = req.email;
+        const userId = req.userId;
 
-        if (email !== process.env.ADMIN_EMAIL) return ResponseObj(res, 403, { message: "Unauthorized!" });
+        const user = await UserServices.findUserByColumn({ _id: userId });
+
+        if (user?.email !== process.env.ADMIN_EMAIL) return ResponseObj(res, 403, { message: "Unauthorized!" });
 
         const { title } = req.body;
 
@@ -50,9 +53,10 @@ const createNewCategory = async (req, res) => {
 const updateCategory = async (req, res) => {
     try {
 
-        const email = req.email;
+        const userId = req.userId;
+        const user = await UserServices.findUserByColumn({ _id: userId });
 
-        if (email !== process.env.ADMIN_EMAIL) return ResponseObj(res, 403, { message: "Unauthorized!" });
+        if (user?.email !== process.env.ADMIN_EMAIL) return ResponseObj(res, 403, { message: "Unauthorized!" });
 
         const { id, title } = req.body;
         if (!id)

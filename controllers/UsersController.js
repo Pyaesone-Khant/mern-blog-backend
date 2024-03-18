@@ -24,9 +24,9 @@ const getAllUsers = async (req, res) => {
 // GET method
 const getCurrentUser = async (req, res) => {
     try {
-        const email = req.email;
+        const userId = req.userId;
         const user = await UserServices.findUserByColumn(
-            { email },
+            { _id: userId },
             "-password -otp -otpExpirationTime -isVerified -__v"
         );
         if (!user)
@@ -34,9 +34,7 @@ const getCurrentUser = async (req, res) => {
 
         const currentUser = {
             ...user,
-            profileImage: user?.profileImage
-                ? process.env.AWS_OBJECT_URL + user.profileImage
-                : null,
+            profileImage: transformImageUrl(user?.profileImage),
         };
         return ResponseObj(res, 200, currentUser);
     } catch (error) {
@@ -49,10 +47,10 @@ const getCurrentUser = async (req, res) => {
 const changePassword = async (req, res) => {
     try {
         const { password, newPassword } = req.body;
-        const email = req.email;
+        const userId = req.userId;
         //find user by id in database
         const user = await UserServices.findUserByColumn(
-            { email },
+            { _id: userId },
             "+password"
         );
 
@@ -82,11 +80,11 @@ const changePassword = async (req, res) => {
 // PUT method
 const changeName = async (req, res) => {
     try {
-        const email = req.email;
+        const userId = req.userId;
         const { name } = req.body;
 
         //find user by id in database
-        const user = await UserServices.findUserByColumn({ email });
+        const user = await UserServices.findUserByColumn({ _id: userId });
         if (!user)
             return ResponseObj(res, 400, { message: "User not found!" });
 
@@ -106,10 +104,10 @@ const changeName = async (req, res) => {
 const changeEmail = async (req, res) => {
     try {
         const { newEmail, password } = req.body;
-        const email = req.email;
+        const userId = req.userId;
 
         const user = await UserServices.findUserByColumn(
-            { email },
+            { _id: userId },
             "+password"
         );
         if (!user)
@@ -126,6 +124,7 @@ const changeEmail = async (req, res) => {
 
         if (duplicateEmail)
             return ResponseObj(res, 400, { message: "Email already exists!" });
+
 
         const otp = generateOTP();
         const otpExpirationTime = Date.now() + 180000; // 3 minutes
@@ -159,11 +158,11 @@ const changeEmail = async (req, res) => {
 const deleteUser = async (req, res) => {
     try {
         const { password } = req.body;
-        const email = req.email;
+        const userId = req.userId;
 
         //find User in database
         const user = await UserServices.findUserByColumn(
-            { email },
+            { _id: userId },
             "+password"
         );
 
@@ -213,7 +212,7 @@ const getUserById = async (req, res) => {
 //POST method
 const setSavedBlog = async (req, res) => {
     try {
-        const email = req.email;
+        const userId = req.userId;
         const { blogId } = req.body;
         if (!blogId)
             return ResponseObj(res, 400, { message: "Blog ID is required!" });
@@ -222,11 +221,10 @@ const setSavedBlog = async (req, res) => {
 
         if (!blog) return ResponseObj(res, 404, { message: "Blog not found!" });
 
-        const user = await UserServices.findUserByColumn({ email: email });
+        const user = await UserServices.findUserByColumn({ _id: userId });
 
         if (!user) return ResponseObj(res, 404, { message: "User not found!" });
 
-        const userId = user?._id;
         //blog.reactions.push(userId);
         const blogAlreadySaved = user.savedBlogs?.find((bId) => bId === blogId);
 
@@ -254,8 +252,8 @@ const setSavedBlog = async (req, res) => {
 //GET method
 const getSavedBlogs = async (req, res) => {
     try {
-        const email = req.email;
-        const user = await UserServices.findUserByColumn({ email });
+        const userId = req.userId;
+        const user = await UserServices.findUserByColumn({ _id: userId });
 
         if (!user) return ResponseObj(res, 400, { message: "User not found!" });
 
@@ -278,11 +276,11 @@ const getSavedBlogs = async (req, res) => {
 const changeProfilePicture = async (req, res) => {
     try {
         const { file } = req;
-        const email = req.email;
+        const userId = req.userId;
         const profileImage = file?.originalname || null;
 
         //find user by id in database
-        const user = await UserServices.findUserByColumn({ email });
+        const user = await UserServices.findUserByColumn({ _id: userId });
         if (!user)
             return ResponseObj(res, 400, { message: "User not found!" });
 

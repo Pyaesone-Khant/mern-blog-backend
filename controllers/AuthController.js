@@ -105,7 +105,7 @@ const userLogin = async (req, res) => {
         const expiredAt = Date.now() + 60 * 60 * 24 * 1000;
 
         const token = jwt.sign(
-            { email: email, expTime: expiredAt },
+            { userId: user._id, expTime: expiredAt },
             process.env.ACCESS_SECRET_TOKEN,
             {
                 expiresIn: Math.floor(expiredAt / 1000),
@@ -128,8 +128,8 @@ const userLogin = async (req, res) => {
 //POST method
 const userLogout = async (req, res) => {
     try {
-        const email = req.email;
-        if (!email)
+        const userId = req.userId;
+        if (!userId)
             return ResponseObj(res, 400, { message: "Token is required!" })
 
         return ResponseObj(res, 200, { message: "Logout successful!" })
@@ -305,13 +305,13 @@ const getSearchedData = async (req, res) => {
 const getRefreshToken = async (req, res) => {
     try {
         const tokenExpireTime = req.expTime;
-        const email = req.email;
+        const userId = req.useId;
         if (new Date(tokenExpireTime) > new Date())
             return ResponseObj(res, 400, { message: "Token hasn't expired yet!" })
 
         const expiredAt = Date.now() + 60 * 60 * 24 * 1000;
         const newToken = jwt.sign(
-            { email: email, expTime: expiredAt },
+            { userId: userId, expTime: expiredAt },
             process.env.ACCESS_SECRET_TOKEN,
             {
                 expiresIn: Math.floor(expiredAt / 1000),
