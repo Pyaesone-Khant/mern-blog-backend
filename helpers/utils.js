@@ -12,7 +12,7 @@ const ResponseObj = (res, status, data) => {
 }
 
 const transformImageUrl = (image) => {
-    return process.env.AWS_OBJECT_URL + image
+    return image ? process.env.AWS_OBJECT_URL + image : null;
 }
 
 module.exports = { formatData, ResponseObj, transformImageUrl }

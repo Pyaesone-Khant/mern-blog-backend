@@ -1,6 +1,6 @@
 const Comment = require("../models/Comment");
-const {CommentServices} = require('../services')
-const {ResponseObj} = require("../helpers/utils")
+const { CommentServices } = require('../services')
+const { ResponseObj } = require("../helpers/utils")
 
 //getting all comments
 //GET method
@@ -9,13 +9,13 @@ const getAllComments = async (req, res) => {
         const blogId = req.query.blogId
 
         if (blogId) {
-            const comments = await Comment.find({blogId: blogId}).lean().exec()
+            const comments = await Comment.find({ blogId: blogId }).lean().exec()
             return ResponseObj(res, 200, comments)
         }
         const comments = await CommentServices.getAllComments();
         return ResponseObj(res, 200, comments);
     } catch (error) {
-        return ResponseObj(res, 500, {message: error?.data?.message || "Internal Server Error!"});
+        return ResponseObj(res, 500, { message: error?.message || "Internal Server Error!" });
     }
 };
 
@@ -23,17 +23,17 @@ const getAllComments = async (req, res) => {
 //POST method
 const createNewComment = async (req, res) => {
     try {
-        const {comment, userId, blogId} = req.body;
+        const { comment, userId, blogId } = req.body;
 
         if (!comment || !userId || !blogId)
-            return ResponseObj(res, 400, {message: "All field is required!"})
+            return ResponseObj(res, 400, { message: "All field is required!" })
 
         if (comment.trim().length < 1)
             return ResponseObj(res, 400, {
                 message: "Blog comment must have minimum of one character!",
             });
 
-        const commentObj = {comment, userId, blogId};
+        const commentObj = { comment, userId, blogId };
         const newComment = await CommentServices.createComment(commentObj)
         if (!newComment)
             return ResponseObj(res, 500, {
@@ -43,7 +43,7 @@ const createNewComment = async (req, res) => {
             message: "New comment has been created.",
         });
     } catch (error) {
-        return ResponseObj(res, 500, {message: error?.data?.message || "Internal Server Error!"})
+        return ResponseObj(res, 500, { message: error?.message || "Internal Server Error!" })
     }
 };
 
@@ -51,10 +51,10 @@ const createNewComment = async (req, res) => {
 //PUT method
 const updateComment = async (req, res) => {
     try {
-        const {id, comment} = req.body;
+        const { id, comment } = req.body;
 
         if (!id)
-            return ResponseObj(res, 400, {message: "Comment Id is required!"})
+            return ResponseObj(res, 400, { message: "Comment Id is required!" })
 
         if (comment?.trim().length < 1)
             return ResponseObj(res, 400, {
@@ -65,18 +65,18 @@ const updateComment = async (req, res) => {
         const existingComment = await CommentServices.findCommentById(id)
 
         if (!existingComment)
-            return ResponseObj(res, 404, {message: "comment not found!"});
+            return ResponseObj(res, 404, { message: "comment not found!" });
 
-        const result = await CommentServices.updateComment(id, {comment})
+        const result = await CommentServices.updateComment(id, { comment })
 
 
-        if (!result) return ResponseObj(res, 500, {message: "Error updating comment!"})
+        if (!result) return ResponseObj(res, 500, { message: "Error updating comment!" })
 
         return ResponseObj(res, 200, {
             message: "Comment has been updated successfully!",
         });
     } catch (error) {
-        return ResponseObj(res, 500, {message: error?.data?.message || "Internal Server Error!"});
+        return ResponseObj(res, 500, { message: error?.message || "Internal Server Error!" });
     }
 };
 
@@ -84,10 +84,10 @@ const updateComment = async (req, res) => {
 //DELETE method
 const deleteComment = async (req, res) => {
     try {
-        const {id} = req.body;
+        const { id } = req.body;
 
         if (!id)
-            return ResponseObj(res, 400, {message: "Comment Id is required!"})
+            return ResponseObj(res, 400, { message: "Comment Id is required!" })
 
         //find comment in database
         const comment = await CommentServices.findCommentById(id)
@@ -99,11 +99,11 @@ const deleteComment = async (req, res) => {
 
         const result = await CommentServices.deleteComment(id)
 
-        if (!result) return ResponseObj(res, 500, {message: "Error deleting comment!"})
+        if (!result) return ResponseObj(res, 500, { message: "Error deleting comment!" })
 
-        return ResponseObj(res, 200, {message: "Comment deleted successfully!"})
+        return ResponseObj(res, 200, { message: "Comment deleted successfully!" })
     } catch (error) {
-        return ResponseObj(res, 500, {message: error?.data?.message || "Internal Server Error!"})
+        return ResponseObj(res, 500, { message: error?.message || "Internal Server Error!" })
     }
 };
 
@@ -111,7 +111,7 @@ const deleteComment = async (req, res) => {
 //GET method
 const getCommentById = async (req, res) => {
     try {
-        const {id} = req.params;
+        const { id } = req.params;
         if (!id)
             return ResponseObj(res, 400, {
                 message: "Comment id is required!",
@@ -120,10 +120,10 @@ const getCommentById = async (req, res) => {
         //find comment by id in database
         const comment = await CommentServices.findCommentById(id)
         if (!comment)
-            return ResponseObj(res, 404, {message: "Comment not found!"});
-        return ResponseObj(res, 200, {comment});
+            return ResponseObj(res, 404, { message: "Comment not found!" });
+        return ResponseObj(res, 200, { comment });
     } catch (error) {
-        return ResponseObj(res, 404, {message: error?.data?.message || "Internal Server Error!"});
+        return ResponseObj(res, 404, { message: error?.message || "Internal Server Error!" });
     }
 };
 
