@@ -3,6 +3,7 @@ const UserServices = require("./UserServices")
 const CategoryServices = require("./CategoryServices")
 const CommentServices = require("./CommentServices")
 const ConversationServices = require("./ConversationServices")
+const MessageServices = require("./MessageServices")
 
 module.exports = {
     BlogServices,
@@ -10,4 +11,5 @@ module.exports = {
     CategoryServices,
     CommentServices,
     ConversationServices,
+    MessageServices
 }

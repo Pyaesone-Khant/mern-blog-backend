@@ -28,6 +28,7 @@ app.use("/api/categories", require("./routes/categoryRoutes"));
 app.use("/api/comments", require("./routes/commentRoutes"));
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/conversations", require("./routes/converstaionRoutes"));
+app.use("/api/messages", require("./routes/messageRoutes"));
 
 // static routes
 app.use(
