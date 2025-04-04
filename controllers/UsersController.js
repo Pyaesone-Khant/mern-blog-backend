@@ -204,7 +204,7 @@ const getUserById = async (req, res) => {
 
         return ResponseObj(res, 200, userData);
     } catch (error) {
-        return ResponseObj(res, 500, { message: error?.data.message || "Internal Server Error!" });
+        return ResponseObj(res, 500, { message: error?.data?.message || "Internal Server Error!" });
     }
 };
 
