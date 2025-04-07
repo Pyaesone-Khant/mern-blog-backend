@@ -9,6 +9,44 @@ const cookieParser = require("cookie-parser");
 const PORT = process.env.PORT || 3500;
 const app = express();
 const path = require("path");
+const { Server } = require("socket.io");
+const { addUser, socketUsers, getSocketUser } = require("./socket/socket");
+
+const httpServer = require("http").createServer(app);
+const io = new Server(httpServer, {
+    cors: {
+        origin: process.env.CLIENT_API,
+    }
+})
+
+io.on("connection", (socket) => {
+    console.log("User connected: ", socket.id);
+
+    socket.on("join", (userId) => {
+        if (!userId || userId === "" || userId === "{}") return;
+        addUser(userId, socket.id);
+        io.emit("getUsers", socketUsers)
+    });
+
+    socket.on("sendMessage", async (data) => {
+        const { senderId, receiverId } = data;
+        const [sender, receiver] = await Promise.all([
+            getSocketUser(senderId),
+            getSocketUser(receiverId)
+        ]);
+        if (receiver) {
+            io.to(receiver.socketId).emit("getMessage", {
+                ...data,
+                sender,
+                createdAt: new Date().toISOString(),
+            });
+        }
+    })
+
+    socket.on("disconnect", () => {
+        console.log("User disconnected: ", socket.id);
+    })
+})
 
 //connecting MongoDB
 connectDB();
@@ -47,7 +85,7 @@ app.use("*", (req, res) => {
 mongoose.connection.once("open", () => {
     console.log("Connected to MongoDB!");
 
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
         console.log(`Server is running on port ${PORT}!`);
     });
 });
