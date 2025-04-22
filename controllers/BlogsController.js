@@ -73,7 +73,7 @@ const createNewBlog = async (req, res) => {
 const updateBlog = async (req, res) => {
     try {
         const { body, file } = req;
-        const { title, description, id } = JSON.parse(body?.blogData);
+        const { title, description, id, categoryId } = JSON.parse(body?.blogData);
         const image = file?.originalname || null;
 
         if (!id)
@@ -99,7 +99,7 @@ const updateBlog = async (req, res) => {
 
 
         const result = await BlogServices.updateBlog(id, {
-            title, description, blogImage: image || blog.blogImage || null
+            title, description, categoryId, blogImage: image || blog.blogImage || null
         })
 
         if (!result)
